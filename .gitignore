@@ -1,6 +1,11 @@
 *.class
 *.log
 *.*~
+.classpath
+.cache
+.project
+.settings/
+bin/
 
 # sbt specific
 dist/*
