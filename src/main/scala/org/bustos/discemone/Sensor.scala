@@ -36,7 +36,7 @@ class Sensor(portName: String, baudRate: Int) extends Actor with ActorLogging wi
   var messageCount = 0
   
   override def preStart() = {
-    logger.info(s"Requesting manager to open port: ${portName}, baud: ${baudRate}")
+    logger.info(s"Requesting to open sensor on port: ${portName}, baud: ${baudRate}")
     IO (Serial) ! ListPorts
     IO (Serial) ! Open(portName, baudRate)
   }

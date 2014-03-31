@@ -36,6 +36,7 @@ class MemberGateway extends Actor with ActorLogging {
   val logger =  LoggerFactory.getLogger(getClass)
 
   override def preStart(): Unit = {
+	logger.info(s"Requesting to open XBee on port: ${DiscemoneConfig.XBeePort}, baud: ${DiscemoneConfig.XBeeBaud}")
     try {
     	xbee.open(DiscemoneConfig.XBeePort, DiscemoneConfig.XBeeBaud)
     	xbeeStarted = true

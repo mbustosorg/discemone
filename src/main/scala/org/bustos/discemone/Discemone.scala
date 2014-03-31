@@ -29,6 +29,9 @@ class Discemone extends Actor with ActorLogging {
     case heartbeat: MemberHeartbeat => {
       logger.info ("Heartbeat: " + heartbeat.representation)
     } 
-    case "Count" => sender ! "Got that"
+    case "Count" => {
+      logger.info ("Count request")
+      sender ! "Got that"
+    }
   }
 }
