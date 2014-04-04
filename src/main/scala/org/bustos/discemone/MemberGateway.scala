@@ -28,12 +28,13 @@ class MemberGateway extends Actor with ActorLogging {
   import DiscemoneConfig._
   import java.io.IOException
   
+  val logger =  LoggerFactory.getLogger(getClass)
+  
   var controller: ActorRef = null
   val xbee: XBee = new XBee()
   var xbeeStarted: Boolean = false 
   var ioexceptionCount: Int = 0
   val IOExceptionCountLimit: Int = 20
-  val logger =  LoggerFactory.getLogger(getClass)
 
   override def preStart(): Unit = {
 	logger.info(s"Requesting to open XBee on port: ${DiscemoneConfig.XBeePort}, baud: ${DiscemoneConfig.XBeeBaud}")

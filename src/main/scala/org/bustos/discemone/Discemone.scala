@@ -16,6 +16,8 @@ class Discemone extends Actor with ActorLogging {
   
   val sensorHub = context.actorOf(Props[SensorHub], "sensorHub")
   val memberGateway = context.actorOf(Props[MemberGateway], "memberGateway")  
+  val processStatistic = context.actorOf(Props[ProcessStatistics], "processStatistics")
+  
   val logger =  LoggerFactory.getLogger(getClass)
   
   override def preStart(): Unit = {
