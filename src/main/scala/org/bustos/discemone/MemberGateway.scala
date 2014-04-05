@@ -2,7 +2,7 @@ package org.bustos.discemone
 
 import akka.actor.{ OneForOneStrategy, Props, ActorRef, Actor }
 import akka.actor.ActorLogging
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import java.util.concurrent.TimeUnit
 
 import com.rapplogic.xbee._
@@ -25,6 +25,7 @@ object MemberGateway {
 class MemberGateway extends Actor with ActorLogging {
 
   import MemberGateway._
+  import context._
   import DiscemoneConfig._
   import java.io.IOException
   
@@ -35,7 +36,9 @@ class MemberGateway extends Actor with ActorLogging {
   var xbeeStarted: Boolean = false 
   var ioexceptionCount: Int = 0
   val IOExceptionCountLimit: Int = 20
-
+  val tickInterval = 10 milliseconds
+  val tickScheduler = system.scheduler.schedule (0 milliseconds, tickInterval, self, CheckIncoming)
+  
   override def preStart(): Unit = {
 	logger.info(s"Requesting to open XBee on port: ${DiscemoneConfig.XBeePort}, baud: ${DiscemoneConfig.XBeeBaud}")
     try {
@@ -49,30 +52,30 @@ class MemberGateway extends Actor with ActorLogging {
   def receive = {
     case Start => {
     	controller = sender
-    	if (xbeeStarted) self ! CheckIncoming    	
     }
     case CheckIncoming => {
-	    try {
-	    	val response = xbee.getResponse(100)
-		    response match {
-		        case x: ZNetRxResponse => {
-		          controller ! new MemberHeartbeat(x.getData())
-		          logger.info("ZNetRxResponse Received")
-		        } 
-		        case _ => {
-		          logger.info("Unknown response Received")
-		        } 
+    	if (xbeeStarted) {
+		    try {
+		    	val response = xbee.getResponse(1)
+			    response match {
+			        case x: ZNetRxResponse => {
+			          controller ! new MemberHeartbeat(x.getData())
+			          logger.info("ZNetRxResponse Received")
+			        } 
+			        case _ => {
+			          logger.info("Unknown response Received")
+			        } 
+			    }
+		    } catch {
+		      case xb: XBeeTimeoutException =>
+		      case ioe: IOException => ioexceptionCount += 1  
+		      case _: Throwable => logger.info("Unknown exception")
 		    }
-	    } catch {
-	      case xb: XBeeTimeoutException =>
-	      case ioe: IOException => ioexceptionCount += 1  
-	      case _: Throwable => logger.info("Unknown exception")
-	    }
-	    if (ioexceptionCount < IOExceptionCountLimit) self ! CheckIncoming
-	    else {
-	      logger.info("Exceeded IOExceptionCountLimit")
-	      context stop self
-	    }
+		    if (ioexceptionCount >= IOExceptionCountLimit) {
+		      logger.info("Exceeded IOExceptionCountLimit")
+		      context stop self
+		    }    	  
+    	}
     }
     case Send(data) => {}
   }
