@@ -14,7 +14,7 @@ import org.slf4j.{Logger, LoggerFactory}
  */
 object ProcessStatistics { 
   case class Tick
-  case class TimeSeries
+  case class CPUtimeSeries
 }
 /** Communication object for monitoring process statistics
  *  
@@ -31,7 +31,7 @@ class ProcessStatistics extends Actor with ActorLogging {
   val tickScheduler = system.scheduler.schedule (0 milliseconds, tickInterval, self, Tick)
  
   def receive = {  
-    case TimeSeries => {
+    case CPUtimeSeries => {
     	sender ! cpuHistory
     }
     case Tick => {

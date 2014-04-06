@@ -13,6 +13,7 @@ import org.slf4j.{Logger, LoggerFactory}
  */
 object SensorHub { 
   case class MonitoredSensorCount(count: Int)
+  case class SensorHistory(name: Char)
 }
 
 class SensorHub extends Actor with ActorLogging {

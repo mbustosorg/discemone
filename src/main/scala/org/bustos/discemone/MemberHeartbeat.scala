@@ -8,7 +8,7 @@ package org.bustos.discemone
 case class MemberHeartbeat (data: Array[Int]) {
 
   def representation: String = {
-	"M:" + message + ".V:" + versionId + ".P:" + currentPattern + ".B:" + batteryVoltage + ".T:" + memberType
+	"M:" + message + ".V:" + versionId + ".P:" + currentPattern + ".B:" + "%.2f".format(batteryVoltage) + ".T:" + memberType
   }
   def message: Int = data(0)
   def versionId: Int = data(1)
@@ -20,7 +20,7 @@ case class MemberHeartbeat (data: Array[Int]) {
   }
   def batteryVoltage: Double = {
 	if (data.length > 5) {
-	  val fullVoltage = data(5) << 7 + data(6) 
+	  val fullVoltage: Double = (data(6) << 8).toDouble + data(5).toDouble 
 	  if (memberType == 1) fullVoltage / 1024.0 * (8.3 / (5.1 / 7.1))
 	  else fullVoltage / 1024.0 * (8.0 / (4.1 / 5.0))
 	}

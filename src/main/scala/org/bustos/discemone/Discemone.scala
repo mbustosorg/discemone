@@ -13,6 +13,7 @@ import org.slf4j.{Logger, LoggerFactory}
 class Discemone extends Actor with ActorLogging {
   import MemberGateway._
   import SensorHub._
+  import ProcessStatistics._
   
   val sensorHub = context.actorOf(Props[SensorHub], "sensorHub")
   val memberGateway = context.actorOf(Props[MemberGateway], "memberGateway")  
@@ -30,6 +31,9 @@ class Discemone extends Actor with ActorLogging {
     }
     case heartbeat: MemberHeartbeat => {
       logger.info ("Heartbeat: " + heartbeat.representation)
+    } 
+    case CPUtimeSeries => {
+      logger.info ("CPU Time Series")
     } 
     case "Count" => {
       logger.info ("Count request")

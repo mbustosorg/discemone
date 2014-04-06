@@ -7,5 +7,12 @@ package org.bustos
  *  This includes sensor inputs from capacitive input devices.
  *  Full project coverage is available on our [[https://www.facebook.com/seagrassProject Facebook]] page. 
  */
+
+import scala.util.matching.Regex
+
 package object discemone {
+   
+	implicit class RegexContext(sc: StringContext) {
+	  def r = new Regex(sc.parts.mkString, sc.parts.tail.map(_ => "x"): _*)
+	}
 }
