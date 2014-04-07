@@ -14,7 +14,7 @@ import org.slf4j.{Logger, LoggerFactory}
  */
 object ProcessStatistics { 
   case class Tick
-  case class CPUtimeSeries
+  case class CPUtimeSeries(history: List[Double])
 }
 /** Communication object for monitoring process statistics
  *  
@@ -26,14 +26,14 @@ class ProcessStatistics extends Actor with ActorLogging {
 
   val logger = LoggerFactory.getLogger(getClass)  
   var cpuHistory: List[Double] = List(0.0)
-  val tickInterval = 1 seconds
+  val tickInterval = 5 seconds
   val hoursToTrack = 5 hours
   val tickScheduler = system.scheduler.schedule (0 milliseconds, tickInterval, self, Tick)
  
   def receive = {  
     case CPUtimeSeries => {
-    	sender ! cpuHistory
-    }
+    	sender ! CPUtimeSeries(cpuHistory)
+    }	
     case Tick => {
     	val cpuCount = Process("bash" :: "-c" :: "ps aux | awk '{sum += $3} END {print sum}'" :: Nil).!!
     	val cpuCountDouble: Double = cpuCount.toDouble

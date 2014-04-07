@@ -2,6 +2,10 @@ package org.bustos.discemone
 
 import akka.actor.{ActorSystem, ActorRef, Actor, Props}
 import akka.actor.ActorLogging
+import akka.pattern.ask
+
+import scala.concurrent.Await
+
 import org.slf4j.{Logger, LoggerFactory}
 
 /** Controller for Discemone
@@ -10,14 +14,25 @@ import org.slf4j.{Logger, LoggerFactory}
  * This also provides system summary access for rendering
  * by external viewers.  
  */
+
+object Discemone {
+  case class CollectCPUtimeSeries
+}
+
 class Discemone extends Actor with ActorLogging {
+  import context._
+  import Discemone._
   import MemberGateway._
   import SensorHub._
-  import ProcessStatistics._
+  import ProcessStatistics._ 
+  import akka.util.Timeout
+  import scala.concurrent.duration._
   
-  val sensorHub = context.actorOf(Props[SensorHub], "sensorHub")
-  val memberGateway = context.actorOf(Props[MemberGateway], "memberGateway")  
-  val processStatistic = context.actorOf(Props[ProcessStatistics], "processStatistics")
+  implicit val defaultTimeout = Timeout(500)
+  
+  val sensorHub = actorOf(Props[SensorHub], "sensorHub")
+  val memberGateway = actorOf(Props[MemberGateway], "memberGateway")  
+  val processStatistics = actorOf(Props[ProcessStatistics], "processStatistics")
   
   val logger =  LoggerFactory.getLogger(getClass)
   
@@ -27,17 +42,25 @@ class Discemone extends Actor with ActorLogging {
 
   def receive = {
     case MonitoredSensorCount(count) => {
+      logger.info ("MonitoredSensorCount request")
       logger.info("sensorHub monitoring " + count + " sensors")
+      logger.info ("MonitoredSensorCount request delivered")
     }
     case heartbeat: MemberHeartbeat => {
+      logger.info ("MemberHeartbeat request")
       logger.info ("Heartbeat: " + heartbeat.representation)
+      logger.info ("MemberHeartbeat request delivered")
     } 
-    case CPUtimeSeries => {
-      logger.info ("CPU Time Series")
+    case CollectCPUtimeSeries => {
+      logger.info ("CollectCPUtimeSeries request")
+      val cpuQuery = processStatistics ? CPUtimeSeries 
+      sender ! Await.result (cpuQuery, 1 second)
+      logger.info ("CollectCPUtimeSeries request delivered")
     } 
     case "Count" => {
       logger.info ("Count request")
       sender ! "Got that"
+      logger.info ("Count request delivered")
     }
   }
 }
