@@ -17,6 +17,8 @@ import org.slf4j.{Logger, LoggerFactory}
 
 object Discemone {
   case class CollectCPUtimeSeries
+  case class CollectMemoryTimeSeries
+  case class ThresholdValue(newValue: Int)
 }
 
 class Discemone extends Actor with ActorLogging {
@@ -57,10 +59,19 @@ class Discemone extends Actor with ActorLogging {
       sender ! Await.result (cpuQuery, 1 second)
       logger.info ("CollectCPUtimeSeries request delivered")
     } 
+    case CollectMemoryTimeSeries => {
+      logger.info ("CollectMemoryTimeSeries request")
+      val cpuQuery = processStatistics ? MemoryTimeSeries 
+      sender ! Await.result (cpuQuery, 1 second)
+      logger.info ("CollectMemoryTimeSeries request delivered")
+    } 
     case "Count" => {
       logger.info ("Count request")
       sender ! "Got that"
       logger.info ("Count request delivered")
+    }
+    case _ => {
+      logger.info ("Received Unknown message")
     }
   }
 }
