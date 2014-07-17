@@ -1,14 +1,22 @@
 package org.bustos.discemone
 
+import com.rapplogic.xbee.api._
+
 /** Record class for tower member heartbeat messages
  * 
  * @constructor create a new heartbeat representation
  * @param data heartbeat payload
  */
-case class MemberHeartbeat (data: Array[Int]) {
 
+case class MemberHeartbeat (newAddress: XBeeAddress64, data: Array[Int]) {
+
+  def address = newAddress
   def representation: String = {
-	"M:" + message + ".V:" + versionId + ".P:" + currentPattern + ".B:" + "%.2f".format(batteryVoltage) + ".T:" + memberType
+	if (currentPattern > 0) {
+		"M:" + message + "|V:" + versionId + "|P:" + currentPattern + "|B:" + "%.2f".format(batteryVoltage) + "|T:" + memberType + "|A64:" + address.toString()
+	} else {
+		"M:" + message + "|V:" + versionId + "|A64:" + address.toString()	  
+	}
   }
   def message: Int = data(0)
   def versionId: Int = data(1)

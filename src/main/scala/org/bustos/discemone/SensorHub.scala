@@ -3,6 +3,10 @@ package org.bustos.discemone
 import akka.actor.{ OneForOneStrategy, Props, ActorRef, Actor }
 import akka.actor.Props
 import akka.actor.ActorLogging
+import akka.util.ByteString
+
+import rxtxio.Serial
+import rxtxio.Serial._
 
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -13,7 +17,7 @@ import org.slf4j.{Logger, LoggerFactory}
  */
 object SensorHub { 
   case class MonitoredSensorCount(count: Int)
-  case class SensorHistory(name: Char)
+  case class SensorInput(name: String, profile: List[Int])
 }
 
 class SensorHub extends Actor with ActorLogging {
@@ -33,12 +37,16 @@ class SensorHub extends Actor with ActorLogging {
 
   def receive = {
     case SensorStarted(name) => {
-       sensors += (name -> context.sender) 
-       logger.info("Started sensor @ " + name)
-       context.parent ! MonitoredSensorCount (sensors.size)
+    	sensors += (name -> context.sender) 
+    	logger.info("Started sensor @ " + name)
+    	context.parent ! MonitoredSensorCount (sensors.size)
     }
-    case SensorUpdate(messageCount) => {
-      logger.info(sender.path.name + " @ " + messageCount)
+    case SensorUpdate(profile) => {
+    	context.parent ! SensorInput(sender.path.name, profile)
+    	if (logger isDebugEnabled) logger.debug(sender.path.name + " @ " + profile.toString)
+    }
+    case SensorCommand(commandString) => {
+    	sensors map {sensor => sensor._2 ! commandString}
     }
   }
   

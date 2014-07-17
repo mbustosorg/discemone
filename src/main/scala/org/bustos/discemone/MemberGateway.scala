@@ -16,9 +16,11 @@ import org.slf4j.{Logger, LoggerFactory}
  * 
  * Will die on persistent IOException so that the parent can restart.
  */
+
 object MemberGateway {
   case class Start
-  case class Send(data: TxRequest64)
+  case class Send (address: XBeeAddress64, data: Array[Int])
+  case class Broadcast (data: Array[Int])
   case object CheckIncoming
 }
 
@@ -43,6 +45,7 @@ class MemberGateway extends Actor with ActorLogging {
 	logger.info(s"Requesting to open XBee on port: ${DiscemoneConfig.XBeePort}, baud: ${DiscemoneConfig.XBeeBaud}")
     try {
     	xbee.open(DiscemoneConfig.XBeePort, DiscemoneConfig.XBeeBaud)
+    	logger.info ("XBee started")
     	xbeeStarted = true
     } catch {
       case _: Throwable => logger.info ("Could not start XBee")
@@ -59,11 +62,14 @@ class MemberGateway extends Actor with ActorLogging {
 		    	val response = xbee.getResponse(1)
 			    response match {
 			        case x: ZNetRxResponse => {
-			          controller ! new MemberHeartbeat(x.getData())
-			          logger.info("ZNetRxResponse Received")
+			          val heartbeat = new MemberHeartbeat(x.getRemoteAddress64, x.getData)
+			          controller ! heartbeat
 			        } 
+			        case x: ZNetTxStatusResponse => {
+			          logger.debug("Status Response Received")			          
+			        }
 			        case _ => {
-			          logger.info("Unknown response Received")
+			          logger.debug("Unknown response Received")
 			        } 
 			    }
 		    } catch {
@@ -77,7 +83,13 @@ class MemberGateway extends Actor with ActorLogging {
 		    }    	  
     	}
     }
-    case Send(data) => {}
+    case Send(address, data) => {
+      if (xbeeStarted) {
+    	  val newMessage = new ZNetTxRequest (address, data)
+    	  xbee.sendAsynchronous(newMessage)
+    	  if (logger isDebugEnabled) logger.debug("Sent message " + data.toString + " to " + address.toString)
+      }
+    }
   }
   
 }  

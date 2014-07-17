@@ -6,8 +6,6 @@ import scala.concurrent.duration._
 
 import scala.sys.process._
 
-import org.slf4j.{Logger, LoggerFactory}
-
 /** Communication object for monitoring process statistics
  * 
  * Collects processor statistics (e.g. CPU, free memory etc) for monitoring
@@ -25,7 +23,6 @@ class ProcessStatistics extends Actor with ActorLogging {
   import context._
   import ProcessStatistics._
 
-  val logger = LoggerFactory.getLogger(getClass)  
   var cpuHistory: List[Double] = List(0.0)
   var memoryHistory: List[Double] = List(0.0)
   val tickInterval = 5 seconds
@@ -44,7 +41,6 @@ class ProcessStatistics extends Actor with ActorLogging {
     	val takeCount: Int = (hoursToTrack / tickInterval).toInt
     	cpuHistory = (cpuCountDouble :: cpuHistory).take (takeCount)
     	cpuHistory = (memoryCountDouble :: cpuHistory).take (takeCount)
-    	//logger.info("CPU: " + cpuCountDouble)
     }
   }
 }

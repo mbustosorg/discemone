@@ -9,6 +9,8 @@ import akka.util.ByteString
 import rxtxio.Serial
 import rxtxio.Serial._
 
+import scala.util.matching.Regex
+
 import org.slf4j.{Logger, LoggerFactory}
 
 /** Communication object for the pod sensor
@@ -17,8 +19,8 @@ import org.slf4j.{Logger, LoggerFactory}
  */
 object Sensor { 
   case class SensorStarted(name: String)
-  case class SensorUpdate(data: Int)
-  case class SendCommand(commandName: String, commandValue: String)
+  case class SensorUpdate(profile: List[Int])
+  case class SensorCommand(commandString: String)
   def apply(portName: String, baudRate: Int) = Props(classOf[Sensor], portName, baudRate)
   private def formatData(data: ByteString) = data.mkString("[", ",", "]") + " " + (new String(data.toArray, "UTF-8"))  
 }
@@ -35,13 +37,16 @@ class Sensor(portName: String, baudRate: Int) extends Actor with ActorLogging wi
   import context._
   
   val logger = LoggerFactory.getLogger(getClass)
+  var runningString = ""
   var messageCount = 0
   var mode = ""
   var sensorThreshold = 10
   var sensorHistory: Map [Char, List [Int]] = Map()
   val sensorNames: List [Char] = List('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i')
   val HistoryLimit: Integer = 100
-  
+  val SensorMessageExpression: Regex = ".*DATA:s_0=([0-9]+),s_1=([0-9]+),s_2=([0-9]+),s_3=([0-9]+),s_4=([0-9]+),s_5=([0-9]+),s_6=([0-9]+),s_7=([0-9]+),s_8=([0-9]+).*".r
+  val ParamConfirmExpression: Regex = "THRS:([0-9]+)".r
+	
   override def preStart() = {
     logger.info(s"Requesting to open sensor on port: ${portName}, baud: ${baudRate}")
     IO (Serial) ! ListPorts
@@ -61,8 +66,7 @@ class Sensor(portName: String, baudRate: Int) extends Actor with ActorLogging wi
       logger.error(s"Connection failed, stopping terminal. Reason: ${reason}")
       context stop self
     }
-    case Opened(s, _) => {
-      val operator = sender
+    case Opened(operator, _) => {
       context become opened(operator)
       parent ! SensorStarted(self.path.name)
       unstashAll()
@@ -75,36 +79,55 @@ class Sensor(portName: String, baudRate: Int) extends Actor with ActorLogging wi
    *  @param operator serial IO component
    */ 
   def opened(operator: ActorRef): Receive = {
+    case s: String => {
+      logger.debug (s)
+      operator ! Write(ByteString(s + "\r\n"))
+    }
     case Received(data) => {
-      // Check if it's a sensor update
-      // Check if it's a command response
-      
-      new String(data.toArray, 0) match {
-        case "TESTMODE" => mode = "TESTMODE"
-        case "PRODMODE" => mode = "PRODMODE"
-        case r"THRSHLD:([0-9])${newValue}" => sensorThreshold = newValue.toInt
-        case r"SENSOR:([0-9])$a-([0-9])$b-([0-9])$c-([0-9])$d-([0-9])$e-([0-9])$f-([0-9])$g-([0-9])$h-([0-9])$i.*" => {
-          updateSensorHistory ('a', a.toInt)
-          updateSensorHistory ('b', b.toInt)
-          updateSensorHistory ('c', c.toInt)
-          updateSensorHistory ('d', d.toInt)
-          updateSensorHistory ('e', e.toInt)
-          updateSensorHistory ('f', f.toInt)
-          updateSensorHistory ('g', g.toInt)
-          updateSensorHistory ('h', h.toInt)
-          updateSensorHistory ('i', i.toInt)
+      val dataString = new String(data.filter(x => x != 0x0A && x != 0x0D) .toArray, 0) // Filter out LF and CR
+      dataString match {
+        case "TEST" => mode = "TEST"
+        case "PROD" => mode = "PROD"
+        case ParamConfirmExpression(newValue) => {
+          sensorThreshold = newValue.toInt
+          logger.info (dataString)
         }
-        case _ => {
-          // Unknown command
+        case SensorMessageExpression(a, b, c, d, e, f, g, h, i) => {
+        	updateSensorHistory ('a', a.toInt)
+        	updateSensorHistory ('b', b.toInt)
+			updateSensorHistory ('c', c.toInt)
+			updateSensorHistory ('d', d.toInt)
+			updateSensorHistory ('e', e.toInt)
+			updateSensorHistory ('f', f.toInt)
+			updateSensorHistory ('g', g.toInt)
+			updateSensorHistory ('h', h.toInt)
+			updateSensorHistory ('i', i.toInt)
+			//logger.debug("Processed: " + dataString)
+        }
+        case unhandledString => {
+          runningString += unhandledString
+          runningString match {
+          	case SensorMessageExpression(a, b, c, d, e, f, g, h, i) => {
+            	updateSensorHistory ('a', a.toInt)
+            	updateSensorHistory ('b', b.toInt)
+            	updateSensorHistory ('c', c.toInt)
+            	updateSensorHistory ('d', d.toInt)
+            	updateSensorHistory ('e', e.toInt)
+            	updateSensorHistory ('f', f.toInt)
+            	updateSensorHistory ('g', g.toInt)
+            	updateSensorHistory ('h', h.toInt)
+            	updateSensorHistory ('i', i.toInt)
+            	runningString = ""
+            }
+            case _ => {
+            	//logger.debug("Assembled: " + runningString)
+            }
+          }
         }
       }
       messageCount += 1
-      if (messageCount % 100 == 0) {
-        parent ! SensorUpdate(messageCount) 
-      }
-    }
-    case SendCommand(name, value) => {
-      operator ! Write (ByteString (name + " " + value))      
+      val profile = sensorNames.map (x => {if (sensorHistory.contains(x)) sensorHistory(x).head else 0})
+      parent ! SensorUpdate(profile) 
     }
     case Closed => {
       logger.info("Operator closed normally, exiting terminal.")

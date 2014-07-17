@@ -6,6 +6,7 @@ import java.net.InetAddress
  * 
  * Port names are specific to the host.
  */
+
 object DiscemoneConfig {
 
 	val hostname = InetAddress.getLocalHost().getHostName()
@@ -13,15 +14,19 @@ object DiscemoneConfig {
 	val SensorBaud = 57600
 	
 	def XBeePort: String = {
-	  if (hostname == "maxPro.local") "/dev/tty.usbserial-AH001572"
-	  else "/dev/ttyS81"
+	  if (hostname == "maxPro.local") {
+	    "/dev/tty.usbserial-AH001572"
+	  }
+	  else {
+	    "/dev/ttyS80"
+	  }
 	}
 	
 	def SensorPorts: Seq[String] = {
 	  if (hostname == "maxPro.local") {
-	    Seq("/dev/tty.usbmodem8881")
+	    Seq("/dev/tty.usbmodem8881", "/dev/tty.usbmodem8871", "/dev/tty.usbmodem8911")
 	  } else {
-	    Seq("/dev/ttyS80")
+	    Seq("/dev/ttyS81", "/dev/ttyS82", "/dev/ttyS83")
 	  }
 	}
 		
