@@ -20,7 +20,6 @@ import org.slf4j.{Logger, LoggerFactory}
 object Sensor { 
   case class SensorStarted(name: String)
   case class SensorUpdate(profile: List[Int])
-  case class SensorCommand(commandString: String)
   def apply(portName: String, baudRate: Int) = Props(classOf[Sensor], portName, baudRate)
   private def formatData(data: ByteString) = data.mkString("[", ",", "]") + " " + (new String(data.toArray, "UTF-8"))  
 }
@@ -34,18 +33,21 @@ object Sensor {
 
 class Sensor(portName: String, baudRate: Int) extends Actor with ActorLogging with Stash {
   import Sensor._
-  import context._
-  
+  import context._  
+  import Discemone._
+
   val logger = LoggerFactory.getLogger(getClass)
   var runningString = ""
   var messageCount = 0
   var mode = ""
   var sensorThreshold = 10
+  var filterLength = 10
   var sensorHistory: Map [Char, List [Int]] = Map()
   val sensorNames: List [Char] = List('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i')
   val HistoryLimit: Integer = 100
   val SensorMessageExpression: Regex = ".*DATA:s_0=([0-9]+),s_1=([0-9]+),s_2=([0-9]+),s_3=([0-9]+),s_4=([0-9]+),s_5=([0-9]+),s_6=([0-9]+),s_7=([0-9]+),s_8=([0-9]+).*".r
-  val ParamConfirmExpression: Regex = "THRS:([0-9]+)".r
+  val ThrsConfirmExpression: Regex = "THRS:([0-9]+)".r
+  val FiltConfirmExpression: Regex = "FILT:([0-9]+)".r
 	
   override def preStart() = {
     logger.info(s"Requesting to open sensor on port: ${portName}, baud: ${baudRate}")
@@ -86,12 +88,6 @@ class Sensor(portName: String, baudRate: Int) extends Actor with ActorLogging wi
     case Received(data) => {
       val dataString = new String(data.filter(x => x != 0x0A && x != 0x0D) .toArray, 0) // Filter out LF and CR
       dataString match {
-        case "TEST" => mode = "TEST"
-        case "PROD" => mode = "PROD"
-        case ParamConfirmExpression(newValue) => {
-          sensorThreshold = newValue.toInt
-          logger.info (dataString)
-        }
         case SensorMessageExpression(a, b, c, d, e, f, g, h, i) => {
         	updateSensorHistory ('a', a.toInt)
         	updateSensorHistory ('b', b.toInt)
@@ -103,6 +99,14 @@ class Sensor(portName: String, baudRate: Int) extends Actor with ActorLogging wi
 			updateSensorHistory ('h', h.toInt)
 			updateSensorHistory ('i', i.toInt)
 			//logger.debug("Processed: " + dataString)
+        }
+        case ThrsConfirmExpression(newValue) => {
+          sensorThreshold = newValue.toInt
+          logger.info (dataString)
+        }
+        case FiltConfirmExpression(newValue) => {
+          filterLength = newValue.toInt
+          logger.info (dataString)
         }
         case unhandledString => {
           runningString += unhandledString
@@ -134,6 +138,8 @@ class Sensor(portName: String, baudRate: Int) extends Actor with ActorLogging wi
       context unwatch operator
       context stop self
     }
-    
+    case "SENSOR_REQUEST" => {
+    	parent ! SensorDetail(portName, sensorThreshold, filterLength) 
+    }
   }
 }

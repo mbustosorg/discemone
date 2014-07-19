@@ -11,21 +11,19 @@ import org.slf4j.{Logger, LoggerFactory}
  */
 
 object SensorPatternControl { 
-  case class ColorCircle extends SensorPatternControl; ColorCircle()
-  case class RGB extends SensorPatternControl; RGB()
-  case class Spectrum extends SensorPatternControl; Spectrum()
 }
 
 class SensorPatternControl {
   
   import SensorPatternControl._
+  import Discemone._
   
   val logger = LoggerFactory.getLogger(getClass)
   
   val redSensor = 8
   val greenSensor = 7
   val blueSensor = 6
-  var mode: SensorPatternControl = ColorCircle()
+  var mode = "ColorCircle"
     
   var members = Map.empty[String, Member]
   var sensorProfile = Map.empty[String, List[Int]]
@@ -44,7 +42,7 @@ class SensorPatternControl {
   def colorLevel (name: String, sensorId: Int): Int = {
     if (sensorProfile.contains(name)) {
       mode match {
-        case ColorCircle() => {
+        case "ColorCircle" => {
           val color = Color.getHSBColor(hue, sat, bri)
           sensorId match {
             case `redSensor` => color.getRed()
@@ -53,12 +51,12 @@ class SensorPatternControl {
             case _ => 0
           }
         }
-        case RGB() => {
+        case "RGB" => {
 	      var proportion: Float = (sensorProfile(name)(sensorId) - sensorMin(name)(sensorId)).toFloat / (sensorMax(name)(sensorId) - sensorMin(name)(sensorId)).toFloat
 	      if (proportion < 0.10) 0
 	      else (proportion * 255.0).toInt          
         }
-        case Spectrum() => {
+        case "Spectrum" => {
           0
         }
       }
@@ -77,9 +75,9 @@ class SensorPatternControl {
   def detectPatternSelect(name: String) {
 	 if (colorLevel(name, redSensor) > 200 && colorLevel(name, greenSensor) > 200) {
 	   mode match {
-	     case ColorCircle() => mode = RGB()
-	     case RGB() => mode = Spectrum()
-	     case Spectrum() => mode = ColorCircle()
+	     case "ColorCircle" => mode = "RGB"
+	     case "RGB" => mode = "Spectrum"
+	     case "Spectrum" => mode = "ColorCircle"
 	   }
 	 }
   }
@@ -112,6 +110,27 @@ class SensorPatternControl {
 		  members += (address -> new Member(heartbeat.address))
 	  }
 	  members(address).setFromHeartbeat(heartbeat)
+  }
+  
+  def memberDetail(name: String): MemberDetail = {
+      if (members.contains(name)) {
+        val member = members(name)
+        MemberDetail(member.address.toString(), 0, 
+        		member.heartbeat.currentPattern,
+        		member.heartbeat.latitude.toFloat,
+        		member.heartbeat.longitude.toFloat,
+        		0.0f,
+        		member.heartbeat.batteryVoltage.toFloat)
+      }
+      else MemberDetail("unknown", 0, 0, 0.0f, 0.0f, 0.0f, 0.0f)
+  }
+  def memberDetails: List[MemberDetail] = {
+    members.values.map(x => MemberDetail(x.address.toString(), 0, 
+    									 x.heartbeat.currentPattern,
+    									 x.heartbeat.latitude.toFloat,
+    									 x.heartbeat.longitude.toFloat,
+    									 0.0f,
+    									 x.heartbeat.batteryVoltage.toFloat)).toList
   }
 
 }

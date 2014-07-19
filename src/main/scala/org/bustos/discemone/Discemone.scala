@@ -16,11 +16,22 @@ import org.slf4j.{Logger, LoggerFactory}
  */
 
 object Discemone {
-  case class CollectCPUtimeSeries
-  case class CollectBatteryTimeSeries
-  case class CollectMemoryTimeSeries
   case class MemberCount
   case class ThresholdValue(newValue: Int)
+  case class MetricHistory(history: List[Double])
+  case class MetricValue(value: Double)
+  case class SensorActivityLevel(id: String)
+  case class SensorDetail(name: String, threshold: Int, filterLength: Int)
+  case class SensorList(collection: List[Sensor])
+  case class MemberDetail(name: String, 
+		  				  xbee: Int,      // Lower 32 bit XBee address
+		  				  pattern: Int,   // Pattern id
+		  				  lat: Float,         // Latitude in decimal degrees
+		  				  lon: Float,         // Longitude in decimal degrees
+		  				  alt: Float,         // Altitude in feet
+		  				  battery: Float)      // Battery voltage
+  case class MemberList(collection: List[MemberDetail])
+  case class PatternCommand(name: String, intensity: Int, red: Int, green: Int, blue: Int, speed: Int)
 }
 
 class Discemone extends Actor with ActorLogging {
@@ -49,10 +60,59 @@ class Discemone extends Actor with ActorLogging {
   }
 
   def receive = {
-    case ConsoleInput(inputString) => {
-      logger.debug(inputString)
-      sensorHub ! SensorCommand(inputString)
+    // RESTful API activity
+  	case "CPU_TIME_SERIES_REQUEST" => {
+      val cpuQuery = processStatistics ? CPUtimeSeries 
+      sender ! Await.result (cpuQuery, 1 second)
+      logger.info ("CPU_TIME_SERIES_REQUEST request delivered")
+    } 
+    case "MEM_TIME_SERIES_REQUEST" => {
+      val cpuQuery = processStatistics ? MemoryTimeSeries 
+      sender ! Await.result (cpuQuery, 1 second)
+      logger.info ("MEM_TIME_SERIES_REQUEST request delivered")
+    } 
+    case "BAT_TIME_SERIES_REQUEST" => {
+      sender ! MetricHistory(List(4.0, 4.0, 1.0, 1.0))
+      logger.info ("BAT_TIME_SERIES_REQUEST request delivered")
+    } 
+    case SensorActivityLevel(name) => {
+      sender ! MetricHistory(List(1.0, 1.0, 1.0, 1.0))
+      logger.info ("SensorActivityLevel request for " + name + " delivered")      
     }
+    case "SENSOR_LIST_REQUEST" => {
+      val query = sensorHub ? "SENSOR_LIST_REQUEST"
+      sender ! Await.result (query, 1 second) 
+      logger.info ("SensorList request for delivered")            
+    }
+    case "MEMBER_COUNT" => {
+      sender ! patternControl.members.size
+      logger.info ("MemberCount request delivered")      
+    }
+    case "MEMBER_LIST_REQUEST" => {
+      sender ! patternControl.memberDetails
+      logger.info ("MemberList request delivered")      
+    }
+    case MemberDetail(name, 0, 0, 0, 0, 0, 0) => {
+      patternControl.memberDetail(name)
+      logger.info ("Member request delivered")
+    }
+    // Put commands
+    case SensorDetail(name, threshold, filterLength) => {
+      if (threshold > 0) sensorHub ! SensorCommand(name, "THRS " + threshold)
+      if (filterLength > 0) sensorHub ! SensorCommand(name, "FILT " + threshold)
+      logger.info ("Sensor command processed")      
+    }
+    case PatternCommand(name, intensity, red, green, blue, speed) => {
+      sender ! "OK"
+      logger.info ("Pattern command processed")      
+    }
+    // XBee Gateway activity
+    case heartbeat: MemberHeartbeat => {
+      patternControl.processHeartbeat (heartbeat)
+      logger.info ("Heartbeat: " + heartbeat.representation)
+    } 
+    
+    // Sensor activity
     case MonitoredSensorCount(count) => {
       logger.info ("sensorHub monitoring " + count + " sensors")
     }
@@ -66,27 +126,11 @@ class Discemone extends Actor with ActorLogging {
         									  patternControl.intensity))
       }}
     }
-    case heartbeat: MemberHeartbeat => {
-      patternControl.processHeartbeat (heartbeat)
-      logger.info ("Heartbeat: " + heartbeat.representation)
-    } 
-    case CollectCPUtimeSeries => {
-      val cpuQuery = processStatistics ? CPUtimeSeries 
-      sender ! Await.result (cpuQuery, 1 second)
-      logger.debug ("CollectCPUtimeSeries request delivered")
-    } 
-    case CollectMemoryTimeSeries => {
-      val cpuQuery = processStatistics ? MemoryTimeSeries 
-      sender ! Await.result (cpuQuery, 1 second)
-      logger.debug ("CollectMemoryTimeSeries request delivered")
-    } 
-    case MemberCount => {
-      sender ! Some(patternControl.members.size)
-      logger.debug ("MemberCount request delivered")      
-    }
-    case "Count" => {
-      sender ! "Got that"
-      logger.debug ("Count request delivered")
+    
+    // Console activity
+    case ConsoleInput(inputString) => {
+      logger.debug(inputString)
+      sensorHub ! SensorCommand("", inputString)
     }
     case _ => {
       logger.debug ("Received Unknown message")

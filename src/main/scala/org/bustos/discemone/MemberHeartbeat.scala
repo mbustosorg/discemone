@@ -44,12 +44,12 @@ case class MemberHeartbeat (newAddress: XBeeAddress64, data: Array[Int]) {
   }
   //0,          // Byte 9: Failed messages (2 bytes)
   //0,
-  //0,          // Byte 11: Latitude (4 bytes)
-  //0,
-  //0,
-  //0,
-  //0,          // Byte 15: Longitude (4 bytes)
-  //0,
-  //0,
-  //0
+  def latitude: Int = {
+    if (data.length > 14) data(11) << 24 + data(12) << 16 + data(13) << 8 + data(14)    	
+    else 0    	  
+  }
+  def longitude: Int = {
+    if (data.length > 18) data(15) << 24 + data(16) << 16 + data(17) << 8 + data(18)
+    else 0
+  }
 }

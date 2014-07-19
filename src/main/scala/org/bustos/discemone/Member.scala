@@ -8,8 +8,8 @@ import com.rapplogic.xbee.api.wpan._
 /** Sculpture member representative
  * 
  * Object representing state of affairs of 
- * a sculpture member.  Current pattern and 
- * settings.
+ * a sculpture member.  Current pattern,
+ * settings and last heartbeat message.
  */
 
 class Member (newAddress: XBeeAddress64) {
