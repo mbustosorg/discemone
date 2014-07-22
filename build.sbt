@@ -12,10 +12,12 @@ libraryDependencies ++= Seq(
     "org.rxtx" % "rxtx" % "2.1.7",
     "org.slf4j" % "slf4j-api" % "1.7.6",
     "org.slf4j" % "slf4j-simple" % "1.7.6",
-    "com.typesafe.akka" %% "akka-actor" % "2.2.3"
+    "com.typesafe.akka" %% "akka-actor" % "2.2.3",
+    "org.scalatest" % "scalatest_2.10" % "1.9",
+    "com.typesafe.akka" %% "akka-testkit" % "2.2.3",
+    "junit" % "junit" % "4.10" % "test",
+    "ch.inventsoft.akka" %% "rxtx-akka-io" % "1.0.2"
 )
-
-net.virtualvoid.sbt.graph.Plugin.graphSettings
 
 assemblySettings
 

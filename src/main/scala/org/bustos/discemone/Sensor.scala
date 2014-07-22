@@ -138,8 +138,8 @@ class Sensor(portName: String, baudRate: Int) extends Actor with ActorLogging wi
       context unwatch operator
       context stop self
     }
-    case "SENSOR_REQUEST" => {
-    	parent ! SensorDetail(portName, sensorThreshold, filterLength) 
+    case ListRequestSensor => {
+    	sender ! SensorDetail(portName, sensorThreshold, filterLength) 
     }
   }
 }

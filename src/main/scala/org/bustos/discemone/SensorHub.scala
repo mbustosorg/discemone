@@ -59,14 +59,17 @@ class SensorHub extends Actor with ActorLogging {
     	  if (sensors.contains (name)) sensors(name) ! commandString
     	}
     }
-    case "SENSOR_LIST_REQUEST" => {
+    case SensorActivityLevel(name) => {
+    	sender ! MetricHistory(List(0.0f))
+    }
+    case ListRequestSensor => {
     	val profile = sensors.map (x => {
-    		val query = x._2 ? "SENSOR_REQUEST"
+    		val query = x._2 ? ListRequestSensor
     		Await.result (query, 1 second) match {
     		  case SensorDetail(name, threshold, filterLength) => SensorDetail(name, threshold, filterLength)  
     		}
     	  })
-    	context.parent ! profile.toList
+    	sender ! SensorList(profile.toList)
     }
   }
   

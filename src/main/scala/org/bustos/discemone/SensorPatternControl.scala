@@ -10,12 +10,8 @@ import org.slf4j.{Logger, LoggerFactory}
  * responses.
  */
 
-object SensorPatternControl { 
-}
-
 class SensorPatternControl {
   
-  import SensorPatternControl._
   import Discemone._
   
   val logger = LoggerFactory.getLogger(getClass)
@@ -124,13 +120,13 @@ class SensorPatternControl {
       }
       else MemberDetail("unknown", 0, 0, 0.0f, 0.0f, 0.0f, 0.0f)
   }
-  def memberDetails: List[MemberDetail] = {
-    members.values.map(x => MemberDetail(x.address.toString(), 0, 
-    									 x.heartbeat.currentPattern,
-    									 x.heartbeat.latitude.toFloat,
-    									 x.heartbeat.longitude.toFloat,
-    									 0.0f,
-    									 x.heartbeat.batteryVoltage.toFloat)).toList
+  
+  def memberDetails: MemberList = {
+    MemberList(members.values.map(x => MemberDetail(x.address.toString(), 0, 
+    												x.heartbeat.currentPattern,
+    												x.heartbeat.latitude.toFloat,
+    												x.heartbeat.longitude.toFloat,
+    												0.0f,
+    												x.heartbeat.batteryVoltage.toFloat)).toList)
   }
-
 }

@@ -16,13 +16,18 @@ import org.slf4j.{Logger, LoggerFactory}
  */
 
 object Discemone {
+  case class TimeSeriesRequestCPU
+  case class TimeSeriesRequestMemory
+  case class TimeSeriesRequestBattery
+  case class ListRequestSensor
+  case class ListRequestMember
   case class MemberCount
   case class ThresholdValue(newValue: Int)
   case class MetricHistory(history: List[Double])
   case class MetricValue(value: Double)
   case class SensorActivityLevel(id: String)
   case class SensorDetail(name: String, threshold: Int, filterLength: Int)
-  case class SensorList(collection: List[Sensor])
+  case class SensorList(collection: List[SensorDetail])
   case class MemberDetail(name: String, 
 		  				  xbee: Int,      // Lower 32 bit XBee address
 		  				  pattern: Int,   // Pattern id
@@ -45,8 +50,8 @@ class Discemone extends Actor with ActorLogging {
   import akka.util.Timeout
   import scala.concurrent.duration._
   
-  implicit val defaultTimeout = Timeout(500)
-  
+  implicit val defaultTimeout = Timeout(2000)
+    
   val sensorHub = actorOf(Props[SensorHub], "sensorHub")
   val memberGateway = actorOf(Props[MemberGateway], "memberGateway")  
   val processStatistics = actorOf(Props[ProcessStatistics], "processStatistics")
@@ -56,45 +61,47 @@ class Discemone extends Actor with ActorLogging {
   val logger =  LoggerFactory.getLogger(getClass)
   
   override def preStart(): Unit = {
-    memberGateway ! Start
+	memberGateway ! Start
   }
 
   def receive = {
     // RESTful API activity
-  	case "CPU_TIME_SERIES_REQUEST" => {
-      val cpuQuery = processStatistics ? CPUtimeSeries 
-      sender ! Await.result (cpuQuery, 1 second)
-      logger.info ("CPU_TIME_SERIES_REQUEST request delivered")
+  	case TimeSeriesRequestCPU => {
+      val future = processStatistics ? TimeSeriesRequestCPU
+      sender ! Await.result(future, defaultTimeout.duration)
+      logger.info ("TimeSeriesRequestCPU request delivered")
     } 
-    case "MEM_TIME_SERIES_REQUEST" => {
-      val cpuQuery = processStatistics ? MemoryTimeSeries 
-      sender ! Await.result (cpuQuery, 1 second)
-      logger.info ("MEM_TIME_SERIES_REQUEST request delivered")
+    case TimeSeriesRequestMemory => {
+      val future = processStatistics ? TimeSeriesRequestMemory
+      sender ! Await.result (future, 1 second)
+      logger.info ("TimeSeriesRequestMemory request delivered")
     } 
-    case "BAT_TIME_SERIES_REQUEST" => {
-      sender ! MetricHistory(List(4.0, 4.0, 1.0, 1.0))
-      logger.info ("BAT_TIME_SERIES_REQUEST request delivered")
+    case TimeSeriesRequestBattery => {
+      val future = processStatistics ? TimeSeriesRequestBattery
+      sender ! Await.result (future, 1 second)
+      logger.info ("TimeSeriesRequestBattery request delivered")
     } 
+    case ListRequestSensor => {
+      val future = sensorHub ? ListRequestSensor
+      sender ! Await.result (future, 1 second) 
+      logger.info ("ListRequestSensor request for delivered")            
+    }
     case SensorActivityLevel(name) => {
-      sender ! MetricHistory(List(1.0, 1.0, 1.0, 1.0))
+      val future = sensorHub ? SensorActivityLevel(name)
+      sender ! Await.result (future, 2 second)
       logger.info ("SensorActivityLevel request for " + name + " delivered")      
     }
-    case "SENSOR_LIST_REQUEST" => {
-      val query = sensorHub ? "SENSOR_LIST_REQUEST"
-      sender ! Await.result (query, 1 second) 
-      logger.info ("SensorList request for delivered")            
-    }
     case "MEMBER_COUNT" => {
-      sender ! patternControl.members.size
+      sender ! MetricValue(patternControl.members.size)
       logger.info ("MemberCount request delivered")      
     }
-    case "MEMBER_LIST_REQUEST" => {
+    case ListRequestMember => {
       sender ! patternControl.memberDetails
-      logger.info ("MemberList request delivered")      
+      logger.info ("ListRequestMember request delivered")      
     }
     case MemberDetail(name, 0, 0, 0, 0, 0, 0) => {
       patternControl.memberDetail(name)
-      logger.info ("Member request delivered")
+      logger.info ("Member detail request delivered")
     }
     // Put commands
     case SensorDetail(name, threshold, filterLength) => {
