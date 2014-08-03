@@ -29,7 +29,7 @@ object Discemone {
   case class SensorDetail(name: String, threshold: Int, filterLength: Int)
   case class SensorList(collection: List[SensorDetail])
   case class MemberDetail(name: String, 
-		  				  xbee: Int,      // Lower 32 bit XBee address
+		  				  xbee: String,      // Lower 32 bit XBee address
 		  				  pattern: Int,   // Pattern id
 		  				  lat: Float,         // Latitude in decimal degrees
 		  				  lon: Float,         // Longitude in decimal degrees
@@ -99,14 +99,14 @@ class Discemone extends Actor with ActorLogging {
       sender ! patternControl.memberDetails
       logger.info ("ListRequestMember request delivered")      
     }
-    case MemberDetail(name, 0, 0, 0, 0, 0, 0) => {
+    case MemberDetail(name, "", 0, 0, 0, 0, 0) => {
       patternControl.memberDetail(name)
       logger.info ("Member detail request delivered")
     }
     // Put commands
     case SensorDetail(name, threshold, filterLength) => {
       if (threshold > 0) sensorHub ! SensorCommand(name, "THRS " + threshold)
-      if (filterLength > 0) sensorHub ! SensorCommand(name, "FILT " + threshold)
+      if (filterLength > 0) sensorHub ! SensorCommand(name, "FILT " + filterLength)
       logger.info ("Sensor command processed")      
     }
     case PatternCommand(name, intensity, red, green, blue, speed) => {
@@ -130,7 +130,7 @@ class Discemone extends Actor with ActorLogging {
         									  patternControl.colorLevel(name, patternControl.redSensor),
         									  patternControl.colorLevel(name, patternControl.greenSensor),
         									  patternControl.colorLevel(name, patternControl.blueSensor),
-        									  patternControl.intensity))
+        									  patternControl.intensity, 0))
       }}
     }
     

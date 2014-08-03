@@ -12,8 +12,9 @@ case class MemberHeartbeat (newAddress: XBeeAddress64, data: Array[Int]) {
 
   def address = newAddress
   def representation: String = {
-	if (currentPattern > 0) {
-		"M:" + message + "|V:" + versionId + "|P:" + currentPattern + "|B:" + "%.2f".format(batteryVoltage) + "|T:" + memberType + "|A64:" + address.toString()
+	if (data.length > 18) {
+		"M:" + message + "|V:" + versionId + "|P:" + currentPattern + "|B:" + "%.2f".format(batteryVoltage) + "|T:" + memberType + 
+		"|LAT:" + latitude.toString + "|LON:" + longitude.toString + "|A64:" + address.toString
 	} else {
 		"M:" + message + "|V:" + versionId + "|A64:" + address.toString()	  
 	}
@@ -30,7 +31,7 @@ case class MemberHeartbeat (newAddress: XBeeAddress64, data: Array[Int]) {
 	if (data.length > 5) {
 	  val fullVoltage: Double = (data(6) << 8).toDouble + data(5).toDouble 
 	  if (memberType == 1) fullVoltage / 1024.0 * (8.3 / (5.1 / 7.1))
-	  else fullVoltage / 1024.0 * (8.0 / (4.1 / 5.0))
+	  else fullVoltage / 81.0
 	}
 	else -1
   }
@@ -44,12 +45,12 @@ case class MemberHeartbeat (newAddress: XBeeAddress64, data: Array[Int]) {
   }
   //0,          // Byte 9: Failed messages (2 bytes)
   //0,
-  def latitude: Int = {
-    if (data.length > 14) data(11) << 24 + data(12) << 16 + data(13) << 8 + data(14)    	
+  def latitude: Float = {
+    if (data.length > 14) (data(14) << 24 | data(13) << 16 | data(12) << 8 | data(11)).toFloat / 100000    	
     else 0    	  
   }
-  def longitude: Int = {
-    if (data.length > 18) data(15) << 24 + data(16) << 16 + data(17) << 8 + data(18)
+  def longitude: Float = {
+    if (data.length > 18) (data(18) << 24 | data(17) << 16 | data(16) << 8 | data(15)).toFloat / 100000
     else 0
   }
 }

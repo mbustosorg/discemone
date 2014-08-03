@@ -12,9 +12,10 @@ import com.rapplogic.xbee.api.wpan._
  * settings and last heartbeat message.
  */
 
-class Member (newAddress: XBeeAddress64) {
+class Member (newName: String, newAddress: XBeeAddress64) {
 
-  def address = newAddress
+  val name = newName
+  val address = newAddress
   var red: Byte = 0
   var green: Byte = 0
   var blue: Byte = 0
@@ -26,7 +27,7 @@ class Member (newAddress: XBeeAddress64) {
   var timestamp: Long = 0
 	
   def setFromHeartbeat (newHeartbeat: MemberHeartbeat) {
-    heartbeat = newHeartbeat
+    if (newHeartbeat.data.size > 18) heartbeat = newHeartbeat
     timestamp = System.currentTimeMillis()
   }
   

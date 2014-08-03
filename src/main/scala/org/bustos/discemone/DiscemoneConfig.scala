@@ -24,7 +24,7 @@ object DiscemoneConfig {
 	
 	def SensorPorts: Seq[String] = {
 	  if (hostname == "maxPro.local") {
-	    Seq("/dev/tty.usbmodem8881", "/dev/tty.usbmodem8871", "/dev/tty.usbmodem8911")
+	    Seq("/dev/tty.usbmodem8881", "/dev/tty.usbmodem8871", "/dev/tty.usbmodem8811")
 	  } else {
 	    Seq("/dev/ttyS81", "/dev/ttyS82", "/dev/ttyS83")
 	  }

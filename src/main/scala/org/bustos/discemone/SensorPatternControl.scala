@@ -103,7 +103,7 @@ class SensorPatternControl {
   def processHeartbeat(heartbeat: MemberHeartbeat) {
 	  val address = heartbeat.address.toString()	
 	  if (!members.contains(address)) {
-		  members += (address -> new Member(heartbeat.address))
+		  members += (address -> new Member("member_" + (members.size + 1).toString, heartbeat.address))
 	  }
 	  members(address).setFromHeartbeat(heartbeat)
   }
@@ -111,18 +111,18 @@ class SensorPatternControl {
   def memberDetail(name: String): MemberDetail = {
       if (members.contains(name)) {
         val member = members(name)
-        MemberDetail(member.address.toString(), 0, 
-        		member.heartbeat.currentPattern,
-        		member.heartbeat.latitude.toFloat,
-        		member.heartbeat.longitude.toFloat,
-        		0.0f,
-        		member.heartbeat.batteryVoltage.toFloat)
+        MemberDetail(name, member.address.toString(), 	
+        			 member.heartbeat.currentPattern,
+        			 member.heartbeat.latitude.toFloat,
+        			 member.heartbeat.longitude.toFloat,
+        			 0.0f,
+        			 member.heartbeat.batteryVoltage.toFloat)
       }
-      else MemberDetail("unknown", 0, 0, 0.0f, 0.0f, 0.0f, 0.0f)
+      else MemberDetail("unknown", "", 0, 0.0f, 0.0f, 0.0f, 0.0f)
   }
   
   def memberDetails: MemberList = {
-    MemberList(members.values.map(x => MemberDetail(x.address.toString(), 0, 
+    MemberList(members.values.map(x => MemberDetail(x.name, x.address.toString(), 
     												x.heartbeat.currentPattern,
     												x.heartbeat.latitude.toFloat,
     												x.heartbeat.longitude.toFloat,

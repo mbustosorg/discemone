@@ -38,7 +38,7 @@ class MemberGateway extends Actor with ActorLogging {
   var xbeeStarted: Boolean = false 
   var ioexceptionCount: Int = 0
   val IOExceptionCountLimit: Int = 20
-  val tickInterval = 50 milliseconds
+  val tickInterval = 10 milliseconds
   val tickScheduler = system.scheduler.schedule (0 milliseconds, tickInterval, self, CheckIncoming)
   
   override def preStart(): Unit = {

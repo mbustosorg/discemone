@@ -139,7 +139,7 @@ class Sensor(portName: String, baudRate: Int) extends Actor with ActorLogging wi
       context stop self
     }
     case ListRequestSensor => {
-    	sender ! SensorDetail(portName, sensorThreshold, filterLength) 
+    	sender ! SensorDetail(self.path.name, sensorThreshold, filterLength) 
     }
   }
 }
