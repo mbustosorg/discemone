@@ -1,6 +1,6 @@
 package org.bustos.discemone
 
-import com.rapplogic.xbee.api._
+import _root_.com.rapplogic.xbee.api._
 
 /** Record class for tower member heartbeat messages
  * 
@@ -11,6 +11,7 @@ import com.rapplogic.xbee.api._
 case class MemberHeartbeat (newAddress: XBeeAddress64, data: Array[Int]) {
 
   def address = newAddress
+  val timeStamp = System.currentTimeMillis()
   def representation: String = {
 	if (data.length > 18) {
 		"M:" + message + "|V:" + versionId + "|P:" + currentPattern + "|B:" + "%.2f".format(batteryVoltage) + "|T:" + memberType + 

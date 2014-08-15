@@ -8,9 +8,6 @@ import akka.pattern.ask
 
 import scala.concurrent.Await
 
-import rxtxio.Serial
-import rxtxio.Serial._
-
 import org.slf4j.{Logger, LoggerFactory}
 
 /** Collection of sensors
@@ -47,6 +44,9 @@ class SensorHub extends Actor with ActorLogging {
     case SensorStarted(name) => {
     	sensors += (name -> context.sender) 
     	logger.info("Started sensor @ " + name)
+    	context.sender ! "THRS " + DiscemoneConfig.SensorThresholdDefault.toString
+    	context.sender ! "FILT " + DiscemoneConfig.SensorFilterDefault.toString
+    	context.sender ! "THRT " + DiscemoneConfig.SensorThrottleDefault.toString
     	context.parent ! MonitoredSensorCount (sensors.size)
     }
     case SensorUpdate(profile) => {
@@ -59,14 +59,11 @@ class SensorHub extends Actor with ActorLogging {
     	  if (sensors.contains (name)) sensors(name) ! commandString
     	}
     }
-    case SensorActivityLevel(name) => {
-    	sender ! MetricHistory(List(0.0f))
-    }
     case ListRequestSensor => {
     	val profile = sensors.map (x => {
     		val query = x._2 ? ListRequestSensor
     		Await.result (query, 1 second) match {
-    		  case SensorDetail(name, threshold, filterLength) => SensorDetail(name, threshold, filterLength)  
+    		  case SensorDetail(name, threshold, filterLength, throttle) => SensorDetail(name, threshold, filterLength, throttle)  
     		}
     	  })
     	sender ! SensorList(profile.toList)

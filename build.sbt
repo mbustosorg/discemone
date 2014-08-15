@@ -10,6 +10,7 @@ libraryDependencies ++= Seq(
     "log4j" % "log4j" % "1.2.14",
     "com.netflix.rxjava" % "rxjava-scala" % "0.15.0",
     "org.rxtx" % "rxtx" % "2.1.7",
+    "com.github.jodersky" %% "flow" % "2.0.3",
     "org.slf4j" % "slf4j-api" % "1.7.6",
     "org.slf4j" % "slf4j-simple" % "1.7.6",
     "com.typesafe.akka" %% "akka-actor" % "2.2.3",
